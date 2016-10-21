@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "module": "es2015",
+    "moduleResolution": "node",
+    "target": "es2015",
+    "declaration": true,
+    "lib": [
+      "dom",
+      "es2017"
+    ],
+    "types": [
+      "node"
+    ],
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitUseStrict": false,
+    "sourceMap": false,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "traceResolution": false,
+    "listFiles": false,
+    "stripInternal": true,
+    "skipDefaultLibCheck": true,
+    "skipLibCheck": false,
+    "pretty": false,
+    "noEmitOnError": true,
+    "allowSyntheticDefaultImports": true,
+    "outDir": "esnext/"
+  },
+  "include": [
+    "typescript/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
