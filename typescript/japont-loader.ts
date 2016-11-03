@@ -26,6 +26,17 @@ export class JapontLoader {
     }
   }
 
+  async fetchFontPathListAsync() {
+    const fontPathList = await fetch(
+      new URL('./fonts', this.APIUrl).toString(),
+      { mode: 'cors' }
+    ).then((res) => {
+      if (!res.ok) throw new Error(res.statusText);
+      return res.json();
+    });
+
+    return fontPathList;
+  }
 }
 
 export class JapontFont {
@@ -190,18 +201,6 @@ ${licenseInComment}
     styleEl.appendChild(document.createTextNode(alternatedCSS));
     document.head.appendChild(styleEl);
     this.styleEl = styleEl;
-  }
-
-  async fetchFontPathList() {
-    const fontPathList = await fetch(
-      new URL('./fonts', this.APIUrl).toString(),
-      { mode: 'cors' }
-    ).then((res) => {
-      if (!res.ok) throw new Error(res.statusText);
-      return res.json();
-    });
-
-    return fontPathList;
   }
 }
 
