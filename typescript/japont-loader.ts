@@ -1,29 +1,48 @@
 import fetch from 'isomorphic-fetch';
 import { ZipLoader } from './zip-loader';
 
-export interface JapontLoaderConfig {
+export interface JapontFontConfig {
   text: string;
   fontPath: string;
-  CSSFontFamilyName: string;
   APIUrl: string;
+  CSSFontFamilyName: string;
 }
 
-class JapontLoader {
+export class JapontLoader {
+  public APIUrl = '';
+  public fonts: JapontFont[] = [];
 
-  private config: JapontLoaderConfig;
+  constructor() {}
+
+  async loadFontAsync(fontPath: string, text = '', CSSFontFamilyName = '') {
+    const font = new JapontFont({ text, fontPath, CSSFontFamilyName, APIUrl: this.APIUrl });
+    this.fonts.push(font);
+    return font.loadFontAsync();
+  }
+
+  alternate() {
+    for (const font of this.fonts) {
+      font.alternate();
+    }
+  }
+
+}
+
+export class JapontFont {
+
+  private config: JapontFontConfig = <JapontFontConfig>{};
   private $: {
     styleEl: HTMLStyleElement,
-  };
+  } = <any>{};
   private license: string;
   private blob: Blob;
   private blobUrl: string;
 
-  constructor(
-    { text, fontPath, APIUrl, CSSFontFamilyName }: JapontLoaderConfig = <JapontLoaderConfig>{}
-  ) {
-    this.config = <JapontLoaderConfig>{};
-    this.$ = <any>{};
+  public info: any = {};
 
+  constructor(
+    { text, fontPath, APIUrl, CSSFontFamilyName }: JapontFontConfig = <JapontFontConfig>{}
+  ) {
     this.setConfig({ text, fontPath, APIUrl, CSSFontFamilyName });
   }
 
@@ -46,13 +65,6 @@ class JapontLoader {
     this.config.fontPath = fontPath;
   }
 
-  get APIUrl() {
-    return this.config.APIUrl;
-  }
-  set APIUrl(APIUrl) {
-    this.config.APIUrl = APIUrl;
-  }
-
   get CSSFontFamilyName() {
     return this.config.CSSFontFamilyName;
   }
@@ -61,6 +73,13 @@ class JapontLoader {
     if (this.blob) {
       this.enableFont();
     }
+  }
+
+  get APIUrl() {
+    return this.config.APIUrl;
+  }
+  set APIUrl(APIUrl) {
+    this.config.APIUrl = APIUrl;
   }
 
   get styleEl() {
@@ -74,14 +93,14 @@ class JapontLoader {
     this.$.styleEl = styleEl;
   }
 
-  setConfig({ text, fontPath, APIUrl, CSSFontFamilyName }: JapontLoaderConfig) {
+  setConfig({ text, fontPath, APIUrl, CSSFontFamilyName }: JapontFontConfig) {
     this.text = text;
     this.fontPath = fontPath;
-    this.CSSFontFamilyName = CSSFontFamilyName;
     this.APIUrl = APIUrl;
+    this.CSSFontFamilyName = CSSFontFamilyName;
   }
 
-  async loadFont() {
+  async loadFontAsync() {
     if (
       !this.text || !this.fontPath || !this.APIUrl
     ) {
@@ -108,6 +127,10 @@ class JapontLoader {
     if (licenseZipObj) {
       this.license = await licenseZipObj.loadAsync('string');
     }
+    const infoZipObj = zip.getFile('info.json');
+    if (infoZipObj) {
+      this.info = JSON.parse(await infoZipObj.loadAsync('string'));
+    }
 
     const fontZipObj = zip.searchFiles(/\.woff$/)[0];
     this.CSSFontFamilyName =
@@ -120,6 +143,8 @@ class JapontLoader {
     this.blobUrl = URL.createObjectURL(this.blob);
 
     this.enableFont();
+
+    return this;
   }
 
   enableFont() {
@@ -151,6 +176,22 @@ ${licenseInComment}
     `;
   }
 
+  alternate() {
+    if (!this.info.alternate) return;
+
+    const alternatedCSS = `
+@font-face {
+  font-family: '${this.CSSFontFamilyName}';
+  src: local('${this.info.alternate}');
+}
+    `;
+
+    const styleEl = document.createElement('style');
+    styleEl.appendChild(document.createTextNode(alternatedCSS));
+    document.head.appendChild(styleEl);
+    this.styleEl = styleEl;
+  }
+
   async fetchFontPathList() {
     const fontPathList = await fetch(
       new URL('./fonts', this.APIUrl).toString(),
@@ -164,4 +205,4 @@ ${licenseInComment}
   }
 }
 
-export default JapontLoader;
+export default new JapontLoader();
