@@ -4,10 +4,16 @@ const config = {
     'jszip': {
       exports: 'global:JSZip',
     },
+    'js-sha512': {
+      exports: 'global:sha512',
+    },
   },
   modern: {
     'jszip': {
       exports: 'global:JSZip',
+    },
+    'js-sha512': {
+      exports: 'global:sha512',
     },
     'isomorphic-fetch': {
       exports: 'global:fetch',

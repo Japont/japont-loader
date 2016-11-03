@@ -1,5 +1,7 @@
 import fetch from 'isomorphic-fetch';
 import { ZipLoader } from './zip-loader';
+import { urlBuilder } from './url-builder';
+import { sha512Wrapper as sha512Async } from './sha512-wrapper';
 
 export interface JapontFontConfig {
   text: string;
@@ -28,7 +30,7 @@ export class JapontLoader {
 
   async fetchFontPathListAsync() {
     const fontPathList = await fetch(
-      new URL('./fonts', this.APIUrl).toString(),
+      urlBuilder({ path: './fonts', baseURL: this.APIUrl }),
       { mode: 'cors' }
     ).then((res) => {
       if (!res.ok) throw new Error(res.statusText);
@@ -118,20 +120,7 @@ export class JapontFont {
       throw new Error('Please set config at first.');
     }
 
-    const zipArrBuf = await fetch(
-      new URL(
-        this.fontPath,
-        new URL('./fonts/', this.APIUrl).toString()
-      ).toString(),
-      {
-        mode: 'cors',
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: this.text,
-      }).then((res) => {
-        if (!res.ok) throw new Error(res.statusText);
-        return res.arrayBuffer();
-      });
+    const zipArrBuf = await this.fetchFontFromServer();
 
     const zip = await new ZipLoader().loadAsync(zipArrBuf);
     const licenseZipObj = zip.getFile('LICENSE');
@@ -156,6 +145,30 @@ export class JapontFont {
     this.enableFont();
 
     return this;
+  }
+
+  async fetchFontFromServer() {
+    const fontURL = urlBuilder({
+      path: ['./fonts/', this.fontPath],
+      baseURL: this.APIUrl,
+      query: { hash: await sha512Async(this.text) }
+    });
+
+    let res = await fetch(fontURL, { mode: 'cors' });
+    if (!res.ok) {
+      res = await fetch(
+        fontURL, {
+        mode: 'cors',
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: this.text,
+      }).then((res) => {
+        if (!res.ok) throw new Error(res.statusText);
+        return fetch(fontURL, { mode: 'cors' });
+      });
+    }
+
+    return await res.arrayBuffer();
   }
 
   enableFont() {
