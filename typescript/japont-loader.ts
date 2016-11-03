@@ -203,5 +203,3 @@ ${licenseInComment}
     this.styleEl = styleEl;
   }
 }
-
-export default new JapontLoader();
