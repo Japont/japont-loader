@@ -64,11 +64,9 @@ export class JapontFont {
   }
   set text(text) {
     if (!text) {
-      const allText = document.body.textContent || '';
-      this.config.text = Array.from(new Set(allText.split(''))).join('');
-    } else {
-      this.config.text = text;
+      text = document.body.textContent || '';
     }
+    this.config.text = Array.from(new Set(text.split(''))).sort().join('');
   }
 
   get fontPath() {
