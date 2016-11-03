@@ -1,9 +1,11 @@
 import sha512 from 'js-sha512';
 
 async function stringToArrayBuffer (str: string) {
-  return <Promise<ArrayBuffer>> new Promise((resolve) => {
+  return <Promise<ArrayBuffer>> new Promise((resolve, reject) => {
     const fileReader = new FileReader();
     fileReader.addEventListener('load', () => resolve(fileReader.result));
+    fileReader.addEventListener('error', () => reject(fileReader.error));
+
     fileReader.readAsArrayBuffer(new Blob([str]));
   });
 }
