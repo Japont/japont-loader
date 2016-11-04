@@ -17,7 +17,8 @@ export class JapontLoader {
   constructor() {}
 
   async loadFontAsync(fontPath: string, text = '', CSSFontFamilyName = '') {
-    const font = new JapontFont({ text, fontPath, CSSFontFamilyName, APIUrl: this.APIUrl });
+    const config = { text, fontPath, CSSFontFamilyName, APIUrl: this.APIUrl };
+    const font = new JapontFont(config);
     this.fonts.push(font);
     return font.loadFontAsync();
   }
@@ -46,6 +47,7 @@ export class JapontFont {
   private config: JapontFontConfig = <JapontFontConfig>{};
   private $: {
     styleEl: HTMLStyleElement,
+    cssText: string,
   } = <any>{};
   private license: string;
   private blob: Blob;
@@ -53,20 +55,18 @@ export class JapontFont {
 
   public info: any = {};
 
-  constructor(
-    { text, fontPath, APIUrl, CSSFontFamilyName }: JapontFontConfig = <JapontFontConfig>{}
-  ) {
-    this.setConfig({ text, fontPath, APIUrl, CSSFontFamilyName });
+  constructor(config: JapontFontConfig = <JapontFontConfig>{}) {
+    this.setConfig(config);
   }
 
   get text() {
     return this.config.text;
   }
   set text(text) {
-    if (!text) {
-      text = document.body.textContent || '';
-    }
-    this.config.text = Array.from(new Set(text.split(''))).sort().join('');
+    const baseText =
+      (text || document.body.textContent || '').replace(/\n/g, '');
+    this.config.text =
+      Array.from(new Set(baseText.split(''))).sort().join('');
   }
 
   get fontPath() {
@@ -98,17 +98,27 @@ export class JapontFont {
   }
   set styleEl(styleEl) {
     const oldEl = this.$.styleEl;
-    if (oldEl) {
-      oldEl.remove();
+    if (oldEl && oldEl.parentNode) {
+      oldEl.parentNode.removeChild(oldEl);
     }
     this.$.styleEl = styleEl;
   }
 
-  setConfig({ text, fontPath, APIUrl, CSSFontFamilyName }: JapontFontConfig) {
-    this.text = text;
-    this.fontPath = fontPath;
-    this.APIUrl = APIUrl;
-    this.CSSFontFamilyName = CSSFontFamilyName;
+  get cssText() {
+    return this.$.cssText;
+  }
+  set cssText(cssText) {
+    this.$.cssText = cssText;
+    if (this.$.styleEl) {
+      this.enableFont();
+    }
+  }
+
+  setConfig(config: JapontFontConfig) {
+    this.text = config.text;
+    this.fontPath = config.fontPath;
+    this.APIUrl = config.APIUrl;
+    this.CSSFontFamilyName = config.CSSFontFamilyName;
   }
 
   async loadFontAsync() {
@@ -132,7 +142,13 @@ export class JapontFont {
 
     const fontZipObj = zip.searchFiles(/\.woff$/)[0];
     this.CSSFontFamilyName =
-      this.CSSFontFamilyName || fontZipObj.name.replace(/([^\/]+)\.woff$/, '$1');
+      this.CSSFontFamilyName ||
+      fontZipObj.name.replace(/([^\/]+)\.woff$/, '$1');
+
+    // IE Hack
+    if ('ActiveXObject' in window) {
+      this.CSSFontFamilyName = this.CSSFontFamilyName.slice(-31);
+    }
 
     this.blob = new Blob(
       [ await fontZipObj.loadAsync('arraybuffer') ],
@@ -140,6 +156,7 @@ export class JapontFont {
     );
     this.blobUrl = URL.createObjectURL(this.blob);
 
+    this.generateCSSText();
     this.enableFont();
 
     return this;
@@ -171,7 +188,7 @@ export class JapontFont {
 
   enableFont() {
     const styleEl = document.createElement('style');
-    styleEl.appendChild(document.createTextNode(this.generateCSSText()));
+    styleEl.appendChild(document.createTextNode(this.cssText));
     document.head.appendChild(styleEl);
     this.styleEl = styleEl;
   }
@@ -185,9 +202,9 @@ export class JapontFont {
   generateCSSText() {
     const licenseInComment = this.license.split('\n')
       .map(line => line.replace(/\*\//g, '*\\/'))
-      .map(line => ` * ${line}`).join('\n');
+      .map(line => ` ${line}`).join('\n');
 
-    return `
+    const cssText = `
 /**
 ${licenseInComment}
  */
@@ -196,6 +213,8 @@ ${licenseInComment}
   src: url('${this.blobUrl}') format('woff');
 }
     `;
+    this.cssText = cssText;
+    return cssText;
   }
 
   alternate() {
@@ -207,10 +226,6 @@ ${licenseInComment}
   src: local('${this.info.alternate}');
 }
     `;
-
-    const styleEl = document.createElement('style');
-    styleEl.appendChild(document.createTextNode(alternatedCSS));
-    document.head.appendChild(styleEl);
-    this.styleEl = styleEl;
+    this.cssText = alternatedCSS;
   }
 }

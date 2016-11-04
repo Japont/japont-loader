@@ -1,3 +1,5 @@
+import 'js-polyfills/url';
+
 export interface builderOptions {
   baseURL: string;
   query?: any;
@@ -15,13 +17,9 @@ export function urlBuilder(opts: builderOptions) {
   }
 
   if (opts.query) {
-    const query: string[] = [];
     for (const key in opts.query) {
-      const keyVal =
-        encodeURIComponent(key) + '=' + encodeURIComponent(opts.query[key]);
-      query.push(keyVal);
+      (<any>url).searchParams.append(key, opts.query[key]);
     }
-    url = new URL('?' + query.join('&'), url.toString());
   }
 
   return url.toString();

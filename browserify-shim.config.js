@@ -15,6 +15,9 @@ const config = {
     'js-sha512': {
       exports: 'global:sha512',
     },
+    'js-polyfills/url': {
+      exports: null,
+    },
     'isomorphic-fetch': {
       exports: 'global:fetch',
     },
